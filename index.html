@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校務排課輔助系統 v4.9</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f0f2f5;
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        /* --- 共用樣式 --- */
+        .card {
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .checkbox-container {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            background-color: #fff !important;
+        }
+
+        /* 自定義捲軸樣式 */
+        .checkbox-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .checkbox-container::-webkit-scrollbar-thumb {
+            background-color: #adb5bd;
+            border-radius: 4px;
+        }
+
+        .form-check-input {
+            cursor: pointer;
+        }
+        .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .grade-title {
+            font-size: 0.9rem;
+            color: #6c757d;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+        }
+
+        /* --- 系統 A：代課查詢樣式 --- */
+        .teacher-card {
+            transition: transform 0.2s;
+            background-color: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #0dcaf0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: default;
+        }
+        .teacher-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        /* --- 系統 B：調課查詢樣式 --- */
+        .bg-purple { background-color: #6f42c1 !important; }
+        .text-purple { color: #6f42c1 !important; }
+        .border-purple { border-color: #6f42c1 !important; }
+
+        /* 按鈕樣式 */
+        .btn-purple {
+            background-color: #ffffff !important;
+            border: 2px solid #6f42c1 !important;
+            color: #000000 !important;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        .btn-purple:hover {
+            background-color: #f3e5f5 !important;
+            border-color: #6f42c1 !important;
+            color: #000000 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(111, 66, 193, 0.2) !important;
+        }
+        .btn-purple:disabled {
+            background-color: #e9ecef !important;
+            border-color: #dee2e6 !important;
+            color: #6c757d !important;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none !important;
+        }
+
+        /* 課表表格優化 */
+        .table-responsive {
+            max-height: 500px; /* 限制高度，避免太長 */
+            overflow-y: auto;
+        }
+        
+        .timetable {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate; /* 為了 sticky header */
+            border-spacing: 0;
+            text-align: center;
+            background-color: white;
+            min-width: 600px; /* 手機版橫向捲動 */
+        }
+
+        .timetable th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8f9fa;
+            color: #495057;
+            font-weight: bold;
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .timetable td {
+            border: 1px solid #dee2e6;
+            padding: 4px;
+            font-size: 0.9rem;
+            vertical-align: middle;
+            height: 60px;
+        }
+
+        /* --- 調課狀態色 --- */
+        .cell-target {
+            background-color: #0d6efd !important;
+            color: white !important;
+            box-shadow: inset 0 0 0 2px #0a58ca;
+        }
+
+        .cell-self-busy {
+            background-color: #e9ecef !important;
+            color: #adb5bd !important;
+        }
+        .cell-self-busy .cell-subject, 
+        .cell-self-busy .cell-teacher {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .cell-swap-ok {
+            background-color: #d1e7dd !important;
+            color: #0f5132 !important;
+            border: 2px solid #198754 !important;
+            cursor: pointer;
+            position: relative;
+        }
+        .cell-swap-ok::after {
+            content: "✅可調";
+            display: block;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #198754;
+            margin-top: 2px;
+        }
+
+        .cell-swap-no {
+            background-color: #f8d7da !important;
+            color: #842029 !important;
+            opacity: 0.8;
+        }
+        .cell-swap-no::after {
+            content: "❌撞堂";
+            display: block;
+            font-size: 0.75em;
+            color: #842029;
+        }
+
+        .cell-subject {
+            font-weight: bold;
+            display: block;
+            font-size: 0.95em;
+            line-height: 1.2;
+        }
+        .cell-teacher {
+            font-size: 0.85em;
+            opacity: 0.9;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+  
+  <!-- 標題區 -->
+  <div class="text-center mb-4">
+    <h1 class="fw-bold text-primary">🏫 校務排課輔助系統 <span class="badge bg-danger fs-5 align-middle ms-2">114-1 雲端版</span></h1>
+    <p class="text-muted">本系統已內建 114學年度第1學期 完整課表資料</p>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- ☁️ 雲端資料狀態區 -->
+  <!-- ========================================== -->
+  <div class="card shadow-sm mb-5 border-0">
+    <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-cloud-arrow-down-fill me-2"></i>雲端資料庫連線狀態</span>
+      <button onclick="fetchDataFromCloud()" class="btn btn-sm btn-outline-light">重新連線</button>
+    </div>
+    <div class="card-body bg-light">
+      <div class="row text-center" id="loadingStatusArea">
+        <div class="col-12 py-3">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p class="mt-2 text-primary fw-bold">正在從雲端下載最新課表，請稍候...</p>
+        </div>
+      </div>
+      
+      <div class="row g-3 d-none" id="dataStatusArea">
+        <div class="col-md-4">
+          <div class="p-2 border rounded bg-white text-success border-success text-center">
+            <i class="bi bi-person-badge-fill me-1"></i> 教師課表：<span id="statusTeacher" class="fw-bold badge bg-success">載入中</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-2 border rounded bg-white text-success border-success text-center">
+            <i class="bi bi-list-task me-1"></i> 任課名單：<span id="statusMapping" class="fw-bold badge bg-success">載入中</span>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="p-2 border rounded bg-white text-success border-success text-center">
+            <i class="bi bi-calendar3 me-1"></i> 班級課表：<span id="statusClass" class="fw-bold badge bg-success">載入中</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 🔍 系統 A：代課查詢系統 (藍色系) -->
+  <!-- ========================================== -->
+  <div class="card shadow mb-5 border-0">
+    <div class="card-header bg-primary text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-search me-2"></i>代課老師查詢系統</span>
+      <span class="badge bg-light text-primary">找代課</span>
+    </div>
+    <div class="card-body">
+      
+      <!-- A1. 時間選擇 -->
+      <div class="row g-3 mb-4">
+        <div class="col-md-6">
+          <label class="form-label fw-bold">缺課星期</label>
+          <select id="daySelect" class="form-select bg-light border-primary">
+            <option value="1">星期一</option>
+            <option value="2">星期二</option>
+            <option value="3">星期三</option>
+            <option value="4">星期四</option>
+            <option value="5">星期五</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-bold">缺課節次</label>
+          <select id="periodSelect" class="form-select bg-light border-primary">
+            <option value="1">第一節</option>
+            <option value="2">第二節</option>
+            <option value="3">第三節</option>
+            <option value="4">第四節</option>
+            <option value="5">第五節</option>
+            <option value="6">第六節</option>
+            <option value="7">第七節</option>
+            <option value="8">第八節</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- A2. 科目篩選 -->
+      <div class="mb-3">
+        <label class="form-label fw-bold text-success"><i class="bi bi-check-square me-1"></i>篩選科目 (可複選)</label>
+        <div id="subjectCheckboxArea" class="d-flex flex-wrap gap-2 p-3 bg-light rounded border checkbox-container">
+          <span class="text-muted small">資料載入中...</span>
+        </div>
+      </div>
+
+      <!-- A3. 班級篩選 -->
+      <div class="mb-4">
+        <label class="form-label fw-bold text-secondary"><i class="bi bi-people-fill me-1"></i>篩選班級任課老師 (可複選)</label>
+        <div class="row g-2 p-3 bg-light rounded border checkbox-container" id="classCheckboxArea">
+           <span class="text-muted small p-2">資料載入中...</span>
+        </div>
+      </div>
+      
+      <button id="searchBtn" class="btn btn-primary w-100 btn-lg shadow" disabled>
+        資料載入中...
+      </button>
+
+      <div id="resultArea" class="mt-4"></div>
+    </div>
+  </div>
+
+  <hr class="my-5 border-3 border-dark opacity-25">
+
+  <!-- ========================================== -->
+  <!-- 🔄 系統 B：調課查詢系統 (紫色系) -->
+  <!-- ========================================== -->
+  <div class="card shadow mb-5 border-0">
+    <div class="card-header bg-purple text-white fw-bold py-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-arrow-left-right me-2"></i>調課查詢系統</span>
+      <span class="badge bg-light text-purple">排調課</span>
+    </div>
+    <div class="card-body bg-light">
+      
+      <div class="row g-3 align-items-end">
+        <!-- 選擇老師 (Input + Datalist) -->
+        <div class="col-md-5">
+          <label for="rescheduleTeacherInput" class="form-label fw-bold text-purple">1. 選擇您的姓名 (可輸入快搜)</label>
+          <input class="form-control form-control-lg border-purple" list="teacherOptions" id="rescheduleTeacherInput" placeholder="點擊選擇或輸入姓名...">
+          <datalist id="teacherOptions">
+            <!-- JS 自動生成 -->
+          </datalist>
+        </div>
+
+        <!-- 選擇請假星期 -->
+        <div class="col-md-5">
+          <label class="form-label fw-bold text-purple">2. 選擇請假星期</label>
+          <select id="rescheduleDaySelect" class="form-select form-select-lg border-purple">
+            <option value="1">星期一</option>
+            <option value="2">星期二</option>
+            <option value="3">星期三</option>
+            <option value="4">星期四</option>
+            <option value="5">星期五</option>
+          </select>
+        </div>
+
+        <!-- 查詢按鈕 -->
+        <div class="col-md-2">
+          <button id="rescheduleBtn" class="btn btn-purple w-100 btn-lg shadow" disabled>
+            查詢
+          </button>
+        </div>
+      </div>
+
+      <!-- 狀態說明 -->
+      <div class="alert alert-white border border-purple mt-4 small text-muted shadow-sm">
+        <div class="d-flex align-items-center flex-wrap gap-3">
+          <strong><i class="bi bi-info-circle-fill text-purple me-1"></i> 狀態說明：</strong>
+          <span><span class="badge bg-primary">藍色</span> 本堂請假</span>
+          <span><span class="badge bg-secondary">灰色</span> 不可調 (本人有課/請假)</span>
+          <span><span class="badge bg-success border border-success">淺綠</span> 可調課 ✅ (對方空堂)</span>
+          <span><span class="badge bg-danger bg-opacity-75">淺紅</span> 撞堂 ❌ (對方有課)</span>
+        </div>
+      </div>
+
+      <hr class="my-4">
+
+      <!-- 調課結果顯示區 -->
+      <div id="rescheduleResultArea">
+        <div class="text-center text-muted py-4">
+          <h5>請選擇姓名與時間，系統將列出受影響班級的完整課表...</h5>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="text-center text-muted small pb-5">
+    &copy; 114-1 校務排課輔助系統 (Smart Search v4.9)
+  </div>
+
+</div>
+
+<!-- JavaScript Logic -->
+<script>
+// ==========================================
+// 1. 雲端檔案設定 (GitHub Gist)
+// ==========================================
+const CLOUD_URLS = {
+  teachers: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/teachers.json',
+  mapping: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/mapping.json',
+  schedules: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/schedules.json'
+};
+
+// ==========================================
+// 2. 全域變數
+// ==========================================
+let teachersData = [];
+let classTeacherMapping = {};
+let classSchedules = {};
+
+// DOM 元素
+const loadingStatusArea = document.getElementById('loadingStatusArea');
+const dataStatusArea = document.getElementById('dataStatusArea');
+const searchBtn = document.getElementById('searchBtn');
+const rescheduleBtn = document.getElementById('rescheduleBtn');
+
+// 系統 A 元素
+const daySelect = document.getElementById('daySelect');
+const periodSelect = document.getElementById('periodSelect');
+const resultArea = document.getElementById('resultArea');
+
+// 系統 B 元素
+const rescheduleTeacherInput = document.getElementById('rescheduleTeacherInput');
+const teacherOptions = document.getElementById('teacherOptions');
+const rescheduleDaySelect = document.getElementById('rescheduleDaySelect');
+const rescheduleResultArea = document.getElementById('rescheduleResultArea');
+
+// ==========================================
+// 3. 自動從雲端抓取資料 (Fetch Data)
+// ==========================================
+async function fetchDataFromCloud() {
+  if(loadingStatusArea) loadingStatusArea.classList.remove('d-none');
+  if(dataStatusArea) dataStatusArea.classList.add('d-none');
+  
+  if(searchBtn) { searchBtn.disabled = true; searchBtn.textContent = "資料載入中..."; }
+  if(rescheduleBtn) { rescheduleBtn.disabled = true; rescheduleBtn.textContent = "資料載入中..."; }
+
+  try {
+    console.log("開始從 GitHub Gist 下載資料...");
+    
+    // 加一個 Timestamp 防止 Cache
+    const ts = new Date().getTime();
+    const [teachersRes, mappingRes, schedulesRes] = await Promise.all([
+      fetch(`${CLOUD_URLS.teachers}?t=${ts}`),
+      fetch(`${CLOUD_URLS.mapping}?t=${ts}`),
+      fetch(`${CLOUD_URLS.schedules}?t=${ts}`)
+    ]);
+
+    if (!teachersRes.ok || !mappingRes.ok || !schedulesRes.ok) {
+      throw new Error("網路連線錯誤，請檢查 GitHub Gist 連結是否正確。");
+    }
+
+    const rawTeachers = await teachersRes.json();
+    const rawMapping = await mappingRes.json();
+    const rawSchedules = await schedulesRes.json();
+
+    // --- A. 解析教師課表 ---
+    if (Array.isArray(rawTeachers)) {
+      teachersData = rawTeachers;
+    } else {
+      throw new Error("教師課表 JSON 格式錯誤");
+    }
+
+    // --- B. 解析任課名單 ---
+    const processedMap = {};
+    if (rawMapping.classes && Array.isArray(rawMapping.classes)) {
+      rawMapping.classes.forEach(cls => {
+        if (cls.class_id) {
+          let allTeachers = [];
+          if (cls.teachers && Array.isArray(cls.teachers)) {
+            allTeachers = [...cls.teachers];
+          }
+          if (cls.homeroom_teacher) {
+            allTeachers.unshift(cls.homeroom_teacher);
+          }
+          processedMap[cls.class_id] = [...new Set(allTeachers)];
+        }
+      });
+      classTeacherMapping = processedMap;
+    } else {
+       // 相容舊格式
+       if(typeof rawMapping === 'object') classTeacherMapping = rawMapping;
+    }
+
+    // --- C. 解析班級課表 ---
+    let processedSchedules = {};
+    const dayMap = { "Monday": "1", "Tuesday": "2", "Wednesday": "3", "Thursday": "4", "Friday": "5" };
+    
+    if (Array.isArray(rawSchedules)) {
+      rawSchedules.forEach(cls => {
+        const classID = cls.class_id;
+        if (!classID || !cls.schedule) return;
+        processedSchedules[classID] = {};
+        
+        for (const [dayName, periods] of Object.entries(cls.schedule)) {
+          const dayCode = dayMap[dayName];
+          if (dayCode && Array.isArray(periods)) {
+            periods.forEach(p => {
+              if (p.period) {
+                const key = `${dayCode}-${p.period}`;
+                processedSchedules[classID][key] = {
+                  subject: p.subject || "",
+                  teacher: p.teacher || "無"
+                };
+              }
+            });
+          }
+        }
+      });
+      classSchedules = processedSchedules;
+    } else {
+      throw new Error("班級課表 JSON 格式錯誤");
+    }
+
+    // --- 載入成功，更新介面 ---
+    if(loadingStatusArea) loadingStatusArea.classList.add('d-none');
+    if(dataStatusArea) dataStatusArea.classList.remove('d-none');
+    
+    if(searchBtn) { searchBtn.disabled = false; searchBtn.textContent = "查詢符合條件的代課老師"; }
+    if(rescheduleBtn) { rescheduleBtn.disabled = false; rescheduleBtn.textContent = "查詢"; }
+
+    initSubjectCheckboxes();
+    initClassCheckboxes();
+    updateRescheduleTeacherOptions();
+
+    const statusTeacher = document.getElementById('statusTeacher');
+    const statusMapping = document.getElementById('statusMapping');
+    const statusClass = document.getElementById('statusClass');
+    
+    if(statusTeacher) statusTeacher.textContent = `已載入 ${teachersData.length} 位`;
+    if(statusMapping) statusMapping.textContent = `已載入 ${Object.keys(classTeacherMapping).length} 班`;
+    if(statusClass) statusClass.textContent = `已載入 ${Object.keys(classSchedules).length} 班`;
+
+  } catch (error) {
+    console.error(error);
+    if(loadingStatusArea) {
+      loadingStatusArea.innerHTML = `
+        <div class="col-12 py-3">
+          <div class="alert alert-danger">
+            <strong>❌ 資料載入失敗</strong><br>
+            請確認 GitHub Gist 連結是否正確。<br>
+            <small class="text-muted">${error.message}</small><br>
+            <button onclick="fetchDataFromCloud()" class="btn btn-sm btn-outline-danger mt-2">重試</button>
+          </div>
+        </div>
+      `;
+    }
+  }
+}
+
+// ==========================================
+// 4. 介面初始化
+// ==========================================
+
+// 輔助函式：標準化姓名 (去除開頭數字與空白)
+function cleanName(name) {
+    if (!name) return "";
+    return name.replace(/^[\d\s]+/, '');
+}
+
+function initSubjectCheckboxes() {
+  const container = document.getElementById('subjectCheckboxArea');
+  if(!container) return;
+  
+  container.innerHTML = '';
+  const allSubjects = [...new Set(teachersData.map(t => t.subject))].sort();
+
+  allSubjects.forEach((subject, index) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'form-check form-check-inline';
+    wrapper.innerHTML = `
+      <input class="form-check-input subject-checkbox" type="checkbox" id="subj_${index}" value="${subject}">
+      <label class="form-check-label" for="subj_${index}">${subject}</label>
+    `;
+    container.appendChild(wrapper);
+  });
+}
+
+function initClassCheckboxes() {
+  const container = document.getElementById('classCheckboxArea');
+  if(!container) return;
+  
+  container.innerHTML = '';
+  const allClasses = Object.keys(classTeacherMapping).sort();
+
+  const groupedClasses = {};
+  allClasses.forEach(cls => {
+    const grade = cls.charAt(0);
+    if (!groupedClasses[grade]) groupedClasses[grade] = [];
+    groupedClasses[grade].push(cls);
+  });
+
+  Object.keys(groupedClasses).sort().forEach(grade => {
+    const col = document.createElement('div');
+    col.className = 'col-12 col-md-4 mb-2';
+    
+    let html = `<div class="card h-100 border-0 shadow-sm"><div class="card-body p-2">`;
+    html += `<div class="grade-title fw-bold">${grade} 年級</div><div class="d-flex flex-wrap gap-2">`;
+    
+    groupedClasses[grade].forEach(cls => {
+      html += `
+        <div class="form-check">
+          <input class="form-check-input class-checkbox" type="checkbox" id="cls_${cls}" value="${cls}">
+          <label class="form-check-label small" for="cls_${cls}">${cls}</label>
+        </div>
+      `;
+    });
+    
+    html += `</div></div></div>`;
+    col.innerHTML = html;
+    container.appendChild(col);
+  });
+}
+
+function updateRescheduleTeacherOptions() {
+  const teacherNames = teachersData.map(t => t.name).sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  
+  if(!teacherOptions) return;
+  teacherOptions.innerHTML = '';
+  
+  // 使用 Set 避免重複
+  const uniqueNames = new Set();
+  
+  teacherNames.forEach(originalName => {
+    const displayName = cleanName(originalName);
+    if(displayName && !uniqueNames.has(displayName)) {
+        uniqueNames.add(displayName);
+        const option = document.createElement('option');
+        option.value = displayName;
+        teacherOptions.appendChild(option);
+    }
+  });
+}
+
+// ==========================================
+// 5. 系統 A 邏輯：代課查詢
+// ==========================================
+
+if(searchBtn) {
+  searchBtn.addEventListener('click', function() {
+    const selectedDay = daySelect.value;
+    const selectedPeriod = periodSelect.value;
+    const queryKey = `${selectedDay}-${selectedPeriod}`;
+
+    const checkedSubjects = Array.from(document.querySelectorAll('.subject-checkbox:checked')).map(cb => cb.value);
+    const checkedClasses = Array.from(document.querySelectorAll('.class-checkbox:checked')).map(cb => cb.value);
+
+    // 篩選邏輯
+    const availableTeachers = teachersData.filter(teacher => {
+      // 1. 時間有空 (該時段不在 busySlots 中)
+      if (teacher.busySlots.includes(queryKey)) return false;
+
+      // 2. 科目符合 (若有勾選)
+      if (checkedSubjects.length > 0 && !checkedSubjects.includes(teacher.subject)) return false;
+
+      // 3. 班級任課符合 (若有勾選)
+      if (checkedClasses.length > 0) {
+        const targetTeacherNames = new Set();
+        checkedClasses.forEach(cls => {
+          const teachersInClass = classTeacherMapping[cls] || [];
+          teachersInClass.forEach(name => targetTeacherNames.add(cleanName(name)));
+        });
+        
+        const currentNameClean = cleanName(teacher.name);
+        if (!targetTeacherNames.has(currentNameClean)) return false;
+      }
+      return true;
+    });
+
+    renderSystemAResults(availableTeachers, selectedDay, selectedPeriod);
+  });
+}
+
+function renderSystemAResults(teachers, day, period) {
+  if(!resultArea) return;
+  resultArea.innerHTML = "";
+
+  if (teachers.length === 0) {
+    resultArea.innerHTML = `<div class="alert alert-warning text-center shadow-sm py-4"><h5>📭 該時段沒有符合條件的空堂老師！</h5><p class="mb-0 text-muted">請嘗試減少篩選條件。</p></div>`;
+    return;
+  }
+
+  const groupedTeachers = {};
+  teachers.forEach(teacher => {
+    if (!groupedTeachers[teacher.subject]) groupedTeachers[teacher.subject] = [];
+    groupedTeachers[teacher.subject].push(teacher);
+  });
+
+  let html = `<div class="alert alert-info shadow-sm mb-4 border-start border-5 border-info">
+                <h5 class="mb-0">📅 星期${day} 第${period}節 <span class="badge bg-primary ms-2 rounded-pill">共 ${teachers.length} 人待命</span></h5>
+              </div>`;
+
+  Object.keys(groupedTeachers).sort().forEach(subject => {
+    const group = groupedTeachers[subject];
+    html += `<div class="card mb-3 border-0 shadow-sm"><div class="card-header bg-white border-bottom-0 pb-0 pt-3"><h5 class="text-secondary border-start border-4 border-info ps-2 fw-bold">${subject} <span class="badge bg-secondary rounded-pill ms-1" style="font-size:0.7em">${group.length}</span></h5></div><div class="card-body pt-2 pb-3"><div class="row g-2">`;
+    
+    group.forEach(teacher => {
+      const displayName = cleanName(teacher.name);
+      html += `<div class="col-6 col-md-3 col-lg-2"><div class="p-2 border rounded text-center bg-white teacher-card h-100 d-flex align-items-center justify-content-center"><span class="fw-bold text-dark">${displayName}</span></div></div>`;
+    });
+    
+    html += `</div></div></div>`;
+  });
+  
+  resultArea.innerHTML = html;
+}
+
+// ==========================================
+// 6. 系統 B 邏輯：調課查詢
+// ==========================================
+
+// 判斷某老師在特定時段是否忙碌 (模糊比對)
+function isTeacherBusy(lookupNameClean, timeKey) {
+  if (!lookupNameClean) return false;
+
+  const teacherObj = teachersData.find(t => cleanName(t.name) === lookupNameClean);
+
+  if (!teacherObj) return false; 
+  return teacherObj.busySlots.includes(timeKey);
+}
+
+if(rescheduleBtn) {
+  rescheduleBtn.addEventListener('click', function() {
+    const targetTeacherInputName = rescheduleTeacherInput.value.trim();
+    const targetDay = rescheduleDaySelect.value;
+
+    if (!targetTeacherInputName) {
+      alert("請輸入或選擇老師姓名！"); 
+      rescheduleTeacherInput.focus();
+      return;
+    }
+    
+    const targetTeacherClean = cleanName(targetTeacherInputName);
+    
+    // 驗證老師是否存在
+    const teacherExists = teachersData.some(t => cleanName(t.name) === targetTeacherClean);
+    if (!teacherExists) {
+        alert("⚠️ 找不到該位老師，請確認姓名是否正確！");
+        return;
+    }
+
+    // 搜尋受影響的課程
+    const affectedClasses = [];
+
+    for (const [classCode, schedule] of Object.entries(classSchedules)) {
+      for (const [timeKey, info] of Object.entries(schedule)) {
+        const [day, period] = timeKey.split('-');
+        
+        let tName = typeof info === 'object' ? info.teacher : "";
+        let sName = typeof info === 'object' ? info.subject : "";
+        
+        if (day === targetDay && cleanName(tName) === targetTeacherClean) {
+          affectedClasses.push({ classCode, period, subject: sName });
+        }
+      }
+    }
+
+    renderRescheduleTables(affectedClasses, targetTeacherClean, targetDay);
+  });
+}
+
+function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
+  if(!rescheduleResultArea) return;
+  rescheduleResultArea.innerHTML = "";
+
+  if (classList.length === 0) {
+    rescheduleResultArea.innerHTML = `<div class="alert alert-secondary text-center py-4"><h5>🍵 星期${myLeaveDay} 您沒有排課，請安心休假。</h5></div>`;
+    return;
+  }
+
+  classList.sort((a, b) => parseInt(a.period) - parseInt(b.period));
+
+  classList.forEach(item => {
+    const classCode = item.classCode;
+    const myLeavePeriod = item.period; 
+    const myLeaveTimeKey = `${myLeaveDay}-${myLeavePeriod}`;
+    const schedule = classSchedules[classCode];
+
+    const card = document.createElement('div');
+    card.className = "card mb-4 border-purple shadow-sm";
+    
+    // 依據節次排列 (上到下)
+    // 依據星期排列 (右到左：週一在右)
+    let headerHtml = `
+      <div class="card-header bg-purple text-white d-flex justify-content-between align-items-center">
+        <span><span class="badge bg-warning text-dark me-2">第 ${myLeavePeriod} 節</span> 請假課程：${classCode}班 - ${item.subject}</span>
+        <small class="d-none d-md-block opacity-75"><i class="bi bi-arrow-left"></i> 課表方向：週一在右，週五在左</small>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="timetable table-bordered mb-0">
+            <thead>
+              <tr class="bg-light">
+                <th style="width: 18%">週五</th>
+                <th style="width: 18%">週四</th>
+                <th style="width: 18%">週三</th>
+                <th style="width: 18%">週二</th>
+                <th style="width: 18%" class="table-primary">週一</th>
+                <th style="width: 10%">節次</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    for (let p = 1; p <= 7; p++) {
+      headerHtml += `<tr>`;
+      
+      // 倒序迴圈：5(五) -> 1(一)
+      for (let d = 5; d >= 1; d--) {
+        const currentTimeKey = `${d}-${p}`;
+        const cellData = schedule[currentTimeKey];
+        
+        let cellClass = "";
+        let content = `<span class="text-muted">-</span>`;
+
+        // 1. 目標請假課程 (藍色)
+        if (d == myLeaveDay && p == myLeavePeriod) {
+          cellClass = "cell-target";
+          if (cellData) content = `<span class="cell-subject">${cellData.subject}</span><span class="cell-teacher">(本堂請假)</span>`;
+        } 
+        // 2. 當天其他時段 (灰色)
+        else if (d == myLeaveDay) {
+          cellClass = "cell-self-busy";
+          if (cellData) {
+             const tchrDisplay = cleanName(cellData.teacher);
+             content = `<span class="cell-subject">${cellData.subject}</span><span class="cell-teacher">${tchrDisplay}</span><span class="text-danger small fw-bold" style="font-size:0.7em">(當天請假)</span>`;
+          }
+        }
+        else {
+          if (cellData) {
+            const subj = cellData.subject || "未知";
+            const otherTeacher = cellData.teacher || "無";
+            const otherTeacherDisplay = cleanName(otherTeacher);
+
+            content = `<span class="cell-subject">${subj}</span><span class="cell-teacher">${otherTeacherDisplay}</span>`;
+
+            // 3. 判斷本人是否有課 (使用純中文名比對)
+            if (isTeacherBusy(myNameClean, currentTimeKey)) {
+              cellClass = "cell-self-busy"; // 我自己有課，不能調來這
+            } else {
+              // 4. 判斷對方是否可調
+              if (otherTeacher !== "無" && otherTeacherDisplay !== myNameClean) {
+                // 檢查對方在「我請假的時間」是否有空
+                if (isTeacherBusy(otherTeacherDisplay, myLeaveTimeKey)) {
+                  cellClass = "cell-swap-no"; // 對方該時段有課 (撞堂)
+                } else {
+                  cellClass = "cell-swap-ok"; // 雙方互換可行
+                  // 增加點擊事件提示 (需進一步開發交換邏輯，這裡僅 UI 提示)
+                  // content = `<div onclick="alert('建議：您可以詢問 ${otherTeacherDisplay} 老師是否願意調至星期${myLeaveDay}第${myLeavePeriod}節')">${content}</div>`;
+                }
+              }
+            }
+          }
+        }
+
+        headerHtml += `<td class="${cellClass}">${content}</td>`;
+      }
+      
+      headerHtml += `<td class="fw-bold bg-light">第 ${p} 節</td>`;
+      headerHtml += `</tr>`;
+    }
+
+    headerHtml += `</tbody></table></div></div>`;
+    card.innerHTML = headerHtml;
+    rescheduleResultArea.appendChild(card);
+  });
+}
+
+// 7. 啟動時自動載入資料
+document.addEventListener('DOMContentLoaded', () => {
+  fetchDataFromCloud();
+});
+</script>
+
+</body>
+</html>
