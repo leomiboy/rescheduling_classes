@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>校務排課輔助系統 v4.9</title>
+    <title>校務排課輔助系統 v5.0 (114-2)</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
@@ -101,18 +101,18 @@
 
         /* 課表表格優化 */
         .table-responsive {
-            max-height: 500px; /* 限制高度，避免太長 */
+            max-height: 500px;
             overflow-y: auto;
         }
         
         .timetable {
             width: 100%;
             table-layout: fixed;
-            border-collapse: separate; /* 為了 sticky header */
+            border-collapse: separate;
             border-spacing: 0;
             text-align: center;
             background-color: white;
-            min-width: 600px; /* 手機版橫向捲動 */
+            min-width: 600px;
         }
 
         .timetable th {
@@ -167,6 +167,23 @@
             color: #198754;
             margin-top: 2px;
         }
+        
+        /* v5.0 新增：淺橘色 (不建議調課) */
+        .cell-swap-discouraged {
+            background-color: #fff3cd !important;
+            color: #856404 !important;
+            border: 2px solid #ffecb5 !important;
+            cursor: pointer;
+            position: relative;
+        }
+        .cell-swap-discouraged::after {
+            content: "⚠️不宜";
+            display: block;
+            font-size: 0.75em;
+            font-weight: bold;
+            color: #d39e00;
+            margin-top: 2px;
+        }
 
         .cell-swap-no {
             background-color: #f8d7da !important;
@@ -199,8 +216,8 @@
   
   <!-- 標題區 -->
   <div class="text-center mb-4">
-    <h1 class="fw-bold text-primary">🏫 校務排課輔助系統 <span class="badge bg-danger fs-5 align-middle ms-2">114-1 雲端版</span></h1>
-    <p class="text-muted">本系統已內建 114學年度第1學期 完整課表資料</p>
+    <h1 class="fw-bold text-primary">🏫 校務排課輔助系統 <span class="badge bg-danger fs-5 align-middle ms-2">114-2 雲端版</span></h1>
+    <p class="text-muted">本系統已更新至 114學年度第2學期 完整課表資料</p>
   </div>
 
   <!-- ========================================== -->
@@ -349,9 +366,14 @@
         <div class="d-flex align-items-center flex-wrap gap-3">
           <strong><i class="bi bi-info-circle-fill text-purple me-1"></i> 狀態說明：</strong>
           <span><span class="badge bg-primary">藍色</span> 本堂請假</span>
-          <span><span class="badge bg-secondary">灰色</span> 不可調 (本人有課/請假)</span>
+          <span><span class="badge bg-secondary">灰色</span> 不可調 (本人有課)</span>
           <span><span class="badge bg-success border border-success">淺綠</span> 可調課 ✅ (對方空堂)</span>
+          <span><span class="badge bg-warning text-dark border border-warning">淺橘</span> 不宜調 ⚠️ (兼課/抽離/本土語/英資)</span>
           <span><span class="badge bg-danger bg-opacity-75">淺紅</span> 撞堂 ❌ (對方有課)</span>
+        </div>
+        <div class="mt-2 text-muted small border-top pt-2">
+          <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> 
+          <strong>淺橘色說明：</strong>兼課老師、本土語、英語課、學習中心的課程（英資/抽離）皆不建議調課。若有必要，請先電洽教務處教學組或是學習中心詢問調課的可能性。
         </div>
       </div>
 
@@ -368,7 +390,7 @@
   </div>
 
   <div class="text-center text-muted small pb-5">
-    &copy; 114-1 校務排課輔助系統 (Smart Search v4.9)
+    &copy; 114-2 校務排課輔助系統 (Smart Search v5.0)
   </div>
 
 </div>
@@ -376,16 +398,49 @@
 <!-- JavaScript Logic -->
 <script>
 // ==========================================
-// 1. 雲端檔案設定 (GitHub Gist)
+// 1. 雲端檔案設定 (GitHub Gist 114-2)
 // ==========================================
 const CLOUD_URLS = {
-  teachers: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/teachers.json',
-  mapping: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/mapping.json',
-  schedules: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/135a773df0f01674461096ec48a86cdab632a475/schedules.json'
+  teachers: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/df23b266c6916549b50728173e9bd157105b88e2/teachers.json',
+  mapping: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/df23b266c6916549b50728173e9bd157105b88e2/mapping.json',
+  schedules: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/df23b266c6916549b50728173e9bd157105b88e2/schedules.json'
 };
 
 // ==========================================
-// 2. 全域變數
+// 2. 特殊課程規則設定 (v5.0 新增)
+// ==========================================
+
+// A. 兼課老師名單 (需標示淺橘)
+const PART_TIME_TEACHERS = [
+  "陳淑娟", "鞠友梅", "張哲銘", "林昭安", "王愷震", "許魏梅華", "曾宇承", "吳淑萍", "邊宇惠"
+];
+
+// B. 學習中心/抽離課程規則 (班級 ID -> 需標示為淺橘的科目關鍵字)
+const RESOURCE_ROOM_RULES = {};
+
+// 輔助函式：批次設定規則
+function setResourceRule(classes, subjects) {
+  classes.forEach(cls => {
+    if (!RESOURCE_ROOM_RULES[cls]) RESOURCE_ROOM_RULES[cls] = [];
+    RESOURCE_ROOM_RULES[cls].push(...subjects);
+  });
+}
+
+// 九年級群組
+setResourceRule(["901"], ["英語", "英語DNA"]);
+setResourceRule(["903", "904", "905"], ["國文", "讀寫萬華園", "想享DNA", "英語", "英語DNA", "數學"]);
+setResourceRule(["907", "908", "910", "911"], ["想享DNA"]);
+
+// 八年級群組
+setResourceRule(["805", "806", "807"], ["國文", "想享DNA", "英語", "英語DNA", "數學"]);
+
+// 七年級群組
+setResourceRule(["706", "707", "708", "709", "710"], ["國文", "想享DNA", "英語", "英語DNA", "數學"]);
+setResourceRule(["701", "702", "703", "704", "705", "711"], ["想享DNA"]);
+
+
+// ==========================================
+// 3. 全域變數
 // ==========================================
 let teachersData = [];
 let classTeacherMapping = {};
@@ -408,8 +463,9 @@ const teacherOptions = document.getElementById('teacherOptions');
 const rescheduleDaySelect = document.getElementById('rescheduleDaySelect');
 const rescheduleResultArea = document.getElementById('rescheduleResultArea');
 
+
 // ==========================================
-// 3. 自動從雲端抓取資料 (Fetch Data)
+// 4. 自動從雲端抓取資料 (Fetch Data)
 // ==========================================
 async function fetchDataFromCloud() {
   if(loadingStatusArea) loadingStatusArea.classList.remove('d-none');
@@ -461,7 +517,6 @@ async function fetchDataFromCloud() {
       });
       classTeacherMapping = processedMap;
     } else {
-       // 相容舊格式
        if(typeof rawMapping === 'object') classTeacherMapping = rawMapping;
     }
 
@@ -532,7 +587,7 @@ async function fetchDataFromCloud() {
 }
 
 // ==========================================
-// 4. 介面初始化
+// 5. 介面初始化與工具函式
 // ==========================================
 
 // 輔助函式：標準化姓名 (去除開頭數字與空白)
@@ -601,7 +656,6 @@ function updateRescheduleTeacherOptions() {
   if(!teacherOptions) return;
   teacherOptions.innerHTML = '';
   
-  // 使用 Set 避免重複
   const uniqueNames = new Set();
   
   teacherNames.forEach(originalName => {
@@ -616,7 +670,7 @@ function updateRescheduleTeacherOptions() {
 }
 
 // ==========================================
-// 5. 系統 A 邏輯：代課查詢
+// 6. 系統 A 邏輯：代課查詢
 // ==========================================
 
 if(searchBtn) {
@@ -630,7 +684,7 @@ if(searchBtn) {
 
     // 篩選邏輯
     const availableTeachers = teachersData.filter(teacher => {
-      // 1. 時間有空 (該時段不在 busySlots 中)
+      // 1. 時間有空
       if (teacher.busySlots.includes(queryKey)) return false;
 
       // 2. 科目符合 (若有勾選)
@@ -689,18 +743,47 @@ function renderSystemAResults(teachers, day, period) {
 }
 
 // ==========================================
-// 6. 系統 B 邏輯：調課查詢
+// 7. 系統 B 邏輯：調課查詢
 // ==========================================
 
-// 判斷某老師在特定時段是否忙碌 (模糊比對)
+// 判斷某老師在特定時段是否忙碌
 function isTeacherBusy(lookupNameClean, timeKey) {
   if (!lookupNameClean) return false;
-
   const teacherObj = teachersData.find(t => cleanName(t.name) === lookupNameClean);
-
   if (!teacherObj) return false; 
   return teacherObj.busySlots.includes(timeKey);
 }
+
+/**
+ * 檢查是否為「不建議調課」的課程 (淺橘色判定)
+ * @param {string} classCode 班級代號 (ex: "701")
+ * @param {string} subject 科目名稱
+ * @param {string} teacherName 老師姓名
+ */
+function isDiscouragedCourse(classCode, subject, teacherName) {
+  if (!subject) return false;
+  const cleanTeachName = cleanName(teacherName);
+
+  // 1. 兼課老師 check
+  if (PART_TIME_TEACHERS.some(pt => cleanTeachName.includes(pt))) return true;
+
+  // 2. 本土語言 check
+  if (subject.includes("本土") || subject.includes("閩") || subject.includes("客語")) return true;
+
+  // 3. 英語課 check (排除 英語DNA)
+  // 規則：所有英語課皆橘，但英語DNA不用(除非在學習中心名單)
+  if (subject.includes("英語") && !subject.includes("英語DNA")) return true;
+
+  // 4. 學習中心/抽離群組 check
+  if (RESOURCE_ROOM_RULES[classCode]) {
+    // 檢查該班級的規則列表中，是否有任何一個關鍵字出現在科目名稱中
+    const isHit = RESOURCE_ROOM_RULES[classCode].some(ruleKeyword => subject.includes(ruleKeyword));
+    if (isHit) return true;
+  }
+
+  return false;
+}
+
 
 if(rescheduleBtn) {
   rescheduleBtn.addEventListener('click', function() {
@@ -762,8 +845,6 @@ function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
     const card = document.createElement('div');
     card.className = "card mb-4 border-purple shadow-sm";
     
-    // 依據節次排列 (上到下)
-    // 依據星期排列 (右到左：週一在右)
     let headerHtml = `
       <div class="card-header bg-purple text-white d-flex justify-content-between align-items-center">
         <span><span class="badge bg-warning text-dark me-2">第 ${myLeavePeriod} 節</span> 請假課程：${classCode}班 - ${item.subject}</span>
@@ -801,14 +882,7 @@ function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
           cellClass = "cell-target";
           if (cellData) content = `<span class="cell-subject">${cellData.subject}</span><span class="cell-teacher">(本堂請假)</span>`;
         } 
-        // 2. 當天其他時段 (灰色)
-        else if (d == myLeaveDay) {
-          cellClass = "cell-self-busy";
-          if (cellData) {
-             const tchrDisplay = cleanName(cellData.teacher);
-             content = `<span class="cell-subject">${cellData.subject}</span><span class="cell-teacher">${tchrDisplay}</span><span class="text-danger small fw-bold" style="font-size:0.7em">(當天請假)</span>`;
-          }
-        }
+        // 2. 當天其他時段，若有課才變灰 (不再整天強制灰)
         else {
           if (cellData) {
             const subj = cellData.subject || "未知";
@@ -817,9 +891,12 @@ function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
 
             content = `<span class="cell-subject">${subj}</span><span class="cell-teacher">${otherTeacherDisplay}</span>`;
 
-            // 3. 判斷本人是否有課 (使用純中文名比對)
+            // 3. 判斷本人是否有課 (灰色 - 優先級高)
             if (isTeacherBusy(myNameClean, currentTimeKey)) {
-              cellClass = "cell-self-busy"; // 我自己有課，不能調來這
+               cellClass = "cell-self-busy"; // 我自己有課，不能調來這
+               if(d == myLeaveDay) {
+                   content += `<span class="text-danger small fw-bold d-block" style="font-size:0.7em">(當天請假)</span>`;
+               }
             } else {
               // 4. 判斷對方是否可調
               if (otherTeacher !== "無" && otherTeacherDisplay !== myNameClean) {
@@ -827,9 +904,12 @@ function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
                 if (isTeacherBusy(otherTeacherDisplay, myLeaveTimeKey)) {
                   cellClass = "cell-swap-no"; // 對方該時段有課 (撞堂)
                 } else {
-                  cellClass = "cell-swap-ok"; // 雙方互換可行
-                  // 增加點擊事件提示 (需進一步開發交換邏輯，這裡僅 UI 提示)
-                  // content = `<div onclick="alert('建議：您可以詢問 ${otherTeacherDisplay} 老師是否願意調至星期${myLeaveDay}第${myLeavePeriod}節')">${content}</div>`;
+                  // --- v5.0 修改：檢查是否為淺橘色 (不宜調動) ---
+                  if (isDiscouragedCourse(classCode, subj, otherTeacherDisplay)) {
+                    cellClass = "cell-swap-discouraged"; // 淺橘色
+                  } else {
+                    cellClass = "cell-swap-ok"; // 淺綠色 (完全可調)
+                  }
                 }
               }
             }
@@ -849,7 +929,7 @@ function renderRescheduleTables(classList, myNameClean, myLeaveDay) {
   });
 }
 
-// 7. 啟動時自動載入資料
+// 8. 啟動時自動載入資料
 document.addEventListener('DOMContentLoaded', () => {
   fetchDataFromCloud();
 });
