@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>校務排課輔助系統 v5.1 (114-2)</title>
+    <title>校務排課輔助系統 v5.2 (114-2)</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
@@ -262,10 +262,19 @@
   <!-- 🔍 系統 A：代課查詢系統 (藍色系) -->
   <!-- ========================================== -->
   <div class="card shadow mb-5 border-0">
-    <div class="card-header bg-primary text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-search me-2"></i>代課老師查詢系統</span>
-      <span class="badge bg-light text-primary">找代課</span>
+    <!-- UI 調整：標題置中 + 放大兩倍 + Padding 增加 -->
+    <div class="card-header bg-primary text-white py-4 position-relative">
+        <div class="text-center">
+            <span class="fw-bold" style="font-size: 2.5rem; letter-spacing: 2px;">
+                <i class="bi bi-search me-3"></i>代課老師查詢系統
+            </span>
+        </div>
+        <!-- 標籤改為絕對定位放在右側，大螢幕顯示，小螢幕隱藏以防遮擋 -->
+        <span class="badge bg-light text-primary position-absolute top-50 end-0 translate-middle-y me-4 d-none d-lg-inline-block fs-5">
+            找代課
+        </span>
     </div>
+    
     <div class="card-body">
       
       <!-- A1. 時間選擇 -->
@@ -325,10 +334,19 @@
   <!-- 🔄 系統 B：調課查詢系統 (紫色系) -->
   <!-- ========================================== -->
   <div class="card shadow mb-5 border-0">
-    <div class="card-header bg-purple text-white fw-bold py-3 d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-arrow-left-right me-2"></i>調課查詢系統</span>
-      <span class="badge bg-light text-purple">排調課</span>
+    <!-- UI 調整：標題置中 + 放大兩倍 + Padding 增加 -->
+    <div class="card-header bg-purple text-white py-4 position-relative">
+        <div class="text-center">
+            <span class="fw-bold" style="font-size: 2.5rem; letter-spacing: 2px;">
+                <i class="bi bi-arrow-left-right me-3"></i>調課查詢系統
+            </span>
+        </div>
+        <!-- 標籤改為絕對定位放在右側 -->
+        <span class="badge bg-light text-purple position-absolute top-50 end-0 translate-middle-y me-4 d-none d-lg-inline-block fs-5">
+            排調課
+        </span>
     </div>
+
     <div class="card-body bg-light">
       
       <div class="row g-3 align-items-end">
@@ -390,7 +408,7 @@
   </div>
 
   <div class="text-center text-muted small pb-5">
-    &copy; 114-2 校務排課輔助系統 (Smart Search v5.1)
+    &copy; 114-2 校務排課輔助系統 (Smart Search v5.2)
   </div>
 
 </div>
@@ -399,7 +417,6 @@
 <script>
 // ==========================================
 // 1. 雲端檔案設定 (GitHub Gist 114-2)
-// 連結已修正為無 Hash 的永久連結，確保讀取最新版
 // ==========================================
 const CLOUD_URLS = {
   teachers: 'https://gist.githubusercontent.com/leomiboy/3d1d6547a9b935f252ce21510d1e33e4/raw/teachers.json',
@@ -408,7 +425,7 @@ const CLOUD_URLS = {
 };
 
 // ==========================================
-// 2. 特殊課程規則設定 (v5.1 新增英資班設定)
+// 2. 特殊課程規則設定 (v5.1 更新版)
 // ==========================================
 
 // A. 兼課老師名單 (需標示淺橘)
@@ -427,9 +444,9 @@ function setResourceRule(classes, subjects) {
   });
 }
 
-// --- 1. 學習中心/抽離群組 (既有規則) ---
+// --- 1. 學習中心/抽離群組 ---
 setResourceRule(["901"], ["英語", "英語DNA"]);
-setResourceRule(["903", "904", "905"], ["國文", "讀寫萬華園", "想享DNA", "數學"]); // 英語移至下方英資群組統一設定
+setResourceRule(["903", "904", "905"], ["國文", "讀寫萬華園", "想享DNA", "數學"]);
 setResourceRule(["907", "908", "910", "911"], ["想享DNA"]);
 
 setResourceRule(["805", "806", "807"], ["國文", "想享DNA", "數學"]);
@@ -437,7 +454,7 @@ setResourceRule(["805", "806", "807"], ["國文", "想享DNA", "數學"]);
 setResourceRule(["706", "707", "708", "709", "710"], ["國文", "想享DNA", "數學"]);
 setResourceRule(["701", "702", "703", "704", "705", "711"], ["想享DNA"]);
 
-// --- 2. 英資班群組 (v5.1 新增：指定班級的英語課為淺橘) ---
+// --- 2. 英資班群組 ---
 // 九年級英資群組
 setResourceRule(["903", "904", "905", "906"], ["英語", "英語DNA"]);
 
@@ -942,5 +959,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
 
 
